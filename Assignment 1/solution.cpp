@@ -8,26 +8,18 @@ typedef unsigned long long ull;
 #define ENDL cout<<endl;
 #define WARNING "Warning:\n"
 #define ERROR "Error:\n"
-#define E1 "E1: A state '' is not in the set of states\n"
-#define E2 "E2: Some states are disjoint\n"
-#define E3 "E3: A transition '' is not represented in the alphabet\n"
-#define E4 "E4: Initial state is not defined\n"
-#define E5 "E5: Input file is malformed\n"
+#define E1 "Error:\nE1: A state '' is not in the set of states\n"
+#define E2 "Error:\nE2: Some states are disjoint\n"
+#define E3 "Error:\nE3: A transition '' is not represented in the alphabet\n"
+#define E4 "Error:\nE4: Initial state is not defined\n"
+#define E5 "Error:\nE5: Input file is malformed\n"
 #define COMPLETE "FSA is complete\n"
 #define INCOMPLETE "FSA is incomplete\n"
 #define W1 "W1: Accepting state is not defined\n"
 #define W2 "W2: Some states are not reachable from the initial state\n"
 #define W3 "W3: FSA is nondeterministic\n"
 
-ll toInt(string str){
-    ll n=0;
-    for(char i:str){
-        n*=10;
-        n+=ll(i-'0');
-    }
-    return n;
-}
-
+// Testing the elements of the array
 void displayArr(vector<string> arr) {
     for(string i : arr) {
         cout<<i<<" : ";
@@ -35,16 +27,28 @@ void displayArr(vector<string> arr) {
     cout<<endl;
 }
 
-void displayMessage(ofstream& myFile, string result, string temp="") {
+// Display Error or Warnings
+// temp is for E1 and E2 errors for inserting string inside
+// finish is for Errors only
+void displayMessage(ofstream& myFile, string result, string temp="", bool finish=false) {
     if(result==E1) {
-        result.insert(13, temp);
+        result.insert(20, temp);
     } else if(result==E3) {
-        result.insert(18, temp);
+        result.insert(25, temp);
     }
-
+    // Output
     myFile << result;
+    if(finish) {
+        myFile.close();
+        exit(0);
+    }
 }
 
+// Splitting process of string into array
+// chars are the main characters of the split
+// order is for special operations (switch case)
+// &arr splitted result
+// e5 check if input valid
 void makeSplit(string str, vector<char> chars, int order, vector<string>& arr, bool &e5) {
     // clean whitespaces
     while(str[str.size()-1] == ' ') str.erase(str.size()-1, 1);
@@ -52,17 +56,21 @@ void makeSplit(string str, vector<char> chars, int order, vector<string>& arr, b
     if(order<=4 && str[str.size()-1] != ']') {
         e5=true;
     }
+    // check the existence of character
     map<char, bool> check;
     // splitting characters
     for(char i : chars) check[i] = true;
     // split process
     string temp="";
     string name="";
+    // if order is less than or equal to 4
+    // ignore the first strings ("states=", "alpha=", etc)
     bool isOk=(order>4);
-    rep(i, str.size()) {
+    rep(i, ll(str.size())) {
         if(check[str[i]]) {
             if(isOk) {
-               if(temp.size()>0) arr.push_back(temp);
+                // push the element to the array
+                if(temp.size()>0) arr.push_back(temp);
             }
             else name=temp;
             temp = "";
@@ -75,7 +83,7 @@ void makeSplit(string str, vector<char> chars, int order, vector<string>& arr, b
     if(temp.size()>0) {
         arr.push_back(temp);
     }
-    // check names
+    // check names, Input validation
     switch(order) {
         case 0:
             if(name!="states=") e5=true;
@@ -97,25 +105,28 @@ void makeSplit(string str, vector<char> chars, int order, vector<string>& arr, b
     }
 }
 
+// Check lastin letters and numbers only
 bool checkLatin(string str) {
     bool isTrue = true;
     for(char i:str) {
-        isTrue &= (i>='a' && i<='z' || i>='A' && i<='Z' || i>='0' && i<='9');
+        isTrue &= ((i>='a' && i<='z') || (i>='A' && i<='Z') || (i>='0' && i<='9'));
     }
     return isTrue;
 }
 
+// Check latin letters, numbers and _ (underscore) only
 bool checkLatinChar(string str) {
     bool isTrue = true;
     for(char i:str) {
-        isTrue &= (i>='a' && i<='z' || i>='A' && i<='Z' || i>='0' && i<='9' || i=='_');
+        isTrue &= ((i>='a' && i<='z') || (i>='A' && i<='Z') || (i>='0' && i<='9') || i=='_');
     }
     return isTrue;
 }
 
 int main(){
+    // Input file
     ifstream inFile ("fsa.txt");
-    // Output
+    // Output file
     ofstream myFile;
     myFile.open ("result.txt");
 
@@ -124,16 +135,15 @@ int main(){
     vector<vector<string>> arr = {states, alpha, init, fin, trans};
     vector<vector<string>> transitions;
     set<string> checkDisjoint;
-    bool e1=false,e2=false,e3=false,e4=false,e5=false;
+    bool e5=false;
     bool w1=false,w2=false,w3=false;
     bool isComplete = false;
-    set<string> tempForE1, tempForE3;
 
     // split array
-    rep(i, 5) {
+    rep(i, ll(5)) {
         getline(inFile, str);
         makeSplit(str, {'[',',',']'}, i, arr[i], e5);
-
+        // states and transitions
         if(i==4) {
             for(string temp : arr[i]) {
                 vector<string> tran;
@@ -146,75 +156,85 @@ int main(){
         }
     }
 
-
     // Check E1: A state  is not in the set of states
-    rep(i, 5) {
-        if(i==2 || i==3) {
+    rep(i, ll(5)) {
+        if(i==0) {
+            // Input validation for states
+            // Check E5: Input
+            for(string state : arr[i]) {
+                e5 |= !checkLatin(state);
+            }
+            if(e5) displayMessage(myFile, E5, "", true);
+        }
+        else if(i==1) {
+            // Input validation for alphabets
+            // Check E5: Input
+            for(string transition : arr[1]) {
+                e5 |= !checkLatinChar(transition);
+            }
+            if(e5) displayMessage(myFile, E5, "", true);
+        }
+        else if(i==2) {
+            // Initial state validation
             // check states
-            for(string temp : arr[i]) {
-                // Exception
-                if(temp=="") continue;
-
+            if(arr[i].size() == 0) displayMessage(myFile, E4, "", true);
+            if(arr[i].size() > 1) displayMessage(myFile, E5, "", true);
+            string temp = arr[i][0];
+            bool isExist = false;
+            for(string state : arr[0]) {
+                isExist |= (state==temp);
+            }
+            // If there is inappropriate/wrong state
+            if(!isExist) displayMessage(myFile, E1, temp, true);
+        } else if(i==3) {
+            // Final state validation
+            // check states
+            for(string temp : arr[i]){
                 bool isExist = false;
                 for(string state : arr[0]) {
                     isExist |= (state==temp);
                 }
                 // If there is inappropriate/wrong state
-                if(!isExist) {
-                    tempForE1.insert(temp);
-                    e1=true;
-                }
+                if(!isExist) displayMessage(myFile, E1, temp, true);
             }
-        } else if(i==4) {
+        }else if(i==4) {
             // check states
             for(vector<string> tran : transitions) {
                 // Exception
-                if(transitions.size()>1 && (tran.size()==0)) e5=true;
+                if(transitions.size()>1 && (tran.size()==0)) displayMessage(myFile, E5, "", true);
                 if(tran.size()==0) continue;
                 bool isExist = true;
-                for(int j=0; j<=2; j+=2){
-                    bool tempExist=false;
-                    for(string state : arr[0]) {
-                        tempExist |= (state==tran[j]);
-                    }
-                    isExist &= tempExist;
-                    // If there is inappropriate/wrong state
-                    if(!isExist) {
-                        tempForE1.insert(tran[j]);
-                        e1=true;
+                for(int j=0; j<=2; j+=1){
+                    if(j==0 || j==2) {
+                        // States
+                        bool tempExist=false;
+                        for(string state : arr[0]) {
+                            tempExist |= (state==tran[j]);
+                        }
+                        isExist &= tempExist;
+                        // If there is inappropriate/wrong state
+                        if(!isExist) displayMessage(myFile, E1, tran[j], true);
+                    } else {
+                        // transitions
+                        // Check E3: transition
+                        bool isExist = false;
+                        for(string alphabet : arr[1]) {
+                            isExist |= (alphabet==tran[j]);
+                        }
+                        if(!isExist) {
+                            if(!isExist) displayMessage(myFile, E3, tran[j], true);
+                        };
                     }
                 }
             }
         }
     }
 
-    // Check E5: Input
-    for(string i : arr[0]) {
-        e5 |= !checkLatin(i);
-    }
-    for(string i : arr[1]) {
-        e5 |= !checkLatinChar(i);
-    }
 
     // Check E2: Some states are disjoint
     if(transitions.size()==0 && arr[0].size()>1) {
-        e2=true;
+        displayMessage(myFile, E2, "", true);
     }
-
-    // Check E3: transition
-    for(vector<string> tran : transitions) {
-        // Exception
-        bool isExist = false;
-        for(string alphabet : arr[1]) {
-            isExist |= (alphabet==tran[1]);
-        }
-        if(!isExist) {
-            tempForE3.insert(tran[1]);
-            e3 = true;
-        };
-    }
-
-    // Check E2: Some states are disjoint
     for(vector<string> tran : transitions) {
         if(tran[0]!=tran[2]){
             checkDisjoint.insert(tran[0]);
@@ -222,37 +242,22 @@ int main(){
         }
     }
     if(arr[0].size()!=1 && arr[0].size()!=checkDisjoint.size()) {
-        e2=true;
+        displayMessage(myFile, E2, "", true);
     }
 
-    // Check E3: initial state
-    if(arr[2].size()!=1) e4=true;
-
-    if(e1 || e2 || e3 || e4 || e5) {
-        displayMessage(myFile, ERROR);
-        if(e1) {
-            for(auto temp1:tempForE1) displayMessage(myFile, E1, temp1);
-        }
-        if(e2) displayMessage(myFile, E2);
-        if(e3) {
-            for(auto temp3:tempForE3) displayMessage(myFile, E3, temp3);
-        }
-        if(e4) displayMessage(myFile, E4);
-        if(e5) displayMessage(myFile, E5);
-        myFile.close();
-        return 0;
-    }
-
-
+    /* REPORT AND WARNINGS */
 
     // Check W1 - accepting state
     if(arr[3].size()==0) {
+        // no accepting state
         w1=true;
     }
 
     // Check W2 - not reachable
+    // ADTs for storing reachable states
     map<string, bool> reachable;
     set<string> reached;
+    // initial state is always reachable
     reachable[arr[2][0]] = true;
     reached.insert(arr[2][0]);
     ll cnt;
@@ -260,6 +265,7 @@ int main(){
         cnt=0;
         for(vector<string> tran : transitions) {
             if(reachable[tran[0]] && !reachable[tran[2]]) {
+                // if reachable then add
                 reachable[tran[2]] = true;
                 reached.insert(tran[2]);
                 cnt++;
@@ -268,6 +274,7 @@ int main(){
     } while(cnt!=0);
     // Check
     if(reached.size() != arr[0].size()) {
+        // not reachable
         w2=true;
     }
 
@@ -281,23 +288,20 @@ int main(){
     for(vector<string> tran : transitions) {
         ll prevSize = mapChecking[tran[0]].uniTrans.size();
         mapChecking[tran[0]].uniTrans.insert(tran[1]);
-        // extra
-        if(prevSize == mapChecking[tran[0]].uniTrans.size()) w3=true;
+        // if all transitions number is equal to unique transitions -> deterministic
+        if(prevSize == ll(mapChecking[tran[0]].uniTrans.size())) w3=true;
         mapChecking[tran[0]].numOfTrans++;
     }
 
     for(string i : arr[0]) {
-        if(arr[0].size()==1) {
-            isComplete=true;
-            break;
-        }
         if(mapChecking.find(i)==mapChecking.end()) {
+            // if some transition ignored -> incomplete
             isComplete = false;
             break;
         }
         st elem = mapChecking[i];
 
-        if(elem.numOfTrans >= arr[1].size() &&
+        if(elem.numOfTrans >= ll(arr[1].size()) &&
             elem.uniTrans.size() == arr[1].size()) {
                 isComplete = true;
             } else {
@@ -306,11 +310,13 @@ int main(){
             }
     }
 
-    // complete
+    // TODO: consider all conditions
     if(isComplete) displayMessage(myFile, COMPLETE);
     else displayMessage(myFile, INCOMPLETE);
     if(w1 || w2 || w3) displayMessage(myFile, WARNING);
     if(w1) displayMessage(myFile, W1);
     if(w2) displayMessage(myFile, W2);
     if(w3) displayMessage(myFile, W3);
+    myFile.close();
+    return 0;
 }
