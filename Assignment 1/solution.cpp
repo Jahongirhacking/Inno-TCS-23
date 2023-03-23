@@ -230,20 +230,33 @@ int main(){
         }
     }
 
-
-    // Check E2: Some states are disjoint
-    if(transitions.size()==0 && arr[0].size()>1) {
-        displayMessage(myFile, E2, "", true);
-    }
-    for(vector<string> tran : transitions) {
-        if(tran[0]!=tran[2]){
-            checkDisjoint.insert(tran[0]);
-            checkDisjoint.insert(tran[2]);
+    // Check E2 - disjoint
+    // ADTs for storing joinable states
+    map<string, bool> joinable;
+    set<string> joined;
+    // initial state is always joinable
+    joinable[arr[2][0]] = true;
+    joined.insert(arr[2][0]);
+    ll cnt;
+    do {
+        cnt=0;
+        for(vector<string> tran : transitions) {
+            if(joinable[tran[0]] != joinable[tran[2]]) {
+                // if joinable then add
+                joinable[tran[0]] = true;
+                joined.insert(tran[0]);
+                joinable[tran[2]] = true;
+                joined.insert(tran[2]);
+                cnt++;
+            }
         }
-    }
-    if(arr[0].size()!=1 && arr[0].size()!=checkDisjoint.size()) {
+    } while(cnt!=0);
+    // Check
+    if(joined.size() != arr[0].size()) {
+        // disjoint
         displayMessage(myFile, E2, "", true);
     }
+
 
     /* REPORT AND WARNINGS */
 
@@ -260,7 +273,7 @@ int main(){
     // initial state is always reachable
     reachable[arr[2][0]] = true;
     reached.insert(arr[2][0]);
-    ll cnt;
+    cnt = 0;
     do {
         cnt=0;
         for(vector<string> tran : transitions) {
